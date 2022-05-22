@@ -62,7 +62,6 @@ class InferModel:
     wav_data = open(wav_path, 'rb').read()
     _, audio = scipy.io.wavfile.read(six.BytesIO(wav_data))
     audio_length = (INPUT_LENGTH-1)*HOP_WIDTH+FFT_SIZE
-    # raise ValueError(audio_length)
     begin = 0
     while begin<audio.shape[0]:
         end = begin+audio_length
@@ -78,7 +77,7 @@ class InferModel:
         enc_inputs = self.model.Spec(chunk)
 
         enc_outputs, _ = self.model.Encoder(enc_inputs, input_mask)
-        dec_inputs = torch.zeros((1, OUTPUT_LENGTH), dtype=torch.int32).to(self.device)
+        dec_inputs = PAD_IDX*torch.ones((1, OUTPUT_LENGTH), dtype=torch.int32).to(self.device)
         next_symbol = SOS_IDX
         for i in range(OUTPUT_LENGTH):
             dec_inputs[0, i] = next_symbol
@@ -86,7 +85,7 @@ class InferModel:
             projected = self.model.projection(dec_outputs)
             next_symbol = projected.squeeze(0).max(dim=-1, keepdim=False)[1].data[i]
             # raise ValueError(next_symbol)
-            print(map_idx_to_event(next_symbol)[1], end=' ')
+            print(round(map_idx_to_event(next_symbol)[1], 2), end=' ')
             if next_symbol==EOS_IDX:
                 break
         break

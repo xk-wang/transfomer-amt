@@ -17,13 +17,13 @@ if __name__ == "__main__":
 
 
     configs = EasyDict({'train_dir': '/home/data/wxk/master-graduate/maestro-v1.0.0-spits/train', 
-                        'device': 'cuda:2',
+                        'device': 'cuda:0',
                         'gpus': 1,
                         'batch_size': 4,
                         'logdir': 'transformer-' + datetime.now().strftime('%y%m%d-%H'),
                         'writer_interval': 100,
                         'log_interval': 50,
-                        'save_interval': 2000,
+                        'save_interval': 10000,
                         'min_step': 10000})
 
     writer = SummaryWriter(configs.logdir)
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     write_graph = True
     optimizer = optim.Adafactor(model.parameters(), lr=1e-3)
 
-    for epoch in range(40):
+    for epoch in range(400):
         for enc_inputs, enc_inputs_mask, dec_inputs, dec_outputs in loader:  # enc_inputs : [batch_size, src_len]
                                                             # dec_inputs : [batch_size, tgt_len]
                                                             # dec_outputs: [batch_size, tgt_len]

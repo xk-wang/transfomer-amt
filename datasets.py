@@ -36,9 +36,12 @@ class MaestroDataset(Dataset):
         audio = np.pad(audio, ((0, pad_audio), ), mode='constant')
 
         # padding the data and label
-        start_segment = np.random.randint(0, n_segments)
-        start_segment = np.random.randint(0, n_segments)
-        segment_length = np.random.randint(1, min(n_segments-start_segment+1, INPUT_LENGTH+1))
+        # start_segment = np.random.randint(0, n_segments)
+        # print(n_segments, INPUT_LENGTH)
+        start_segment = np.random.randint(0, n_segments-INPUT_LENGTH+1)
+        # segment_length = np.random.randint(1, min(n_segments-start_segment+1, INPUT_LENGTH+1))
+        # segment_length = min(n_segments-start_segment, INPUT_LENGTH)
+        segment_length = INPUT_LENGTH
         start_pos = start_segment*HOP_WIDTH
         end_pos = start_pos + (segment_length-1)*HOP_WIDTH+FFT_SIZE-1
         enc_inputs = audio[start_pos: end_pos+1]
@@ -79,6 +82,7 @@ class MaestroDataset(Dataset):
         padded_enc_mask_length = INPUT_LENGTH - segment_length
         padded_enc_input_mask = np.pad(enc_input_mask, ((0, padded_enc_mask_length), ), mode='constant')
         padded_dec_length = OUTPUT_LENGTH - dec_inputs.shape[0]
+        # print(padded_dec_length, OUTPUT_LENGTH, dec_inputs.shape[0])
         padded_dec_inputs = np.pad(dec_inputs, ((0, padded_dec_length), ), mode='constant', constant_values=PAD_IDX)
         padded_dec_outputs = np.pad(dec_outputs, ((0, padded_dec_length), ), mode='constant', constant_values=PAD_IDX)
 
