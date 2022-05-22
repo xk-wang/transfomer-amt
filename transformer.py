@@ -186,18 +186,20 @@ class DecoderLayer(nn.Module):
 class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
-        self.tgt_emb = nn.Embedding(TOTAL_EVENT_NUM, d_model)
+        self.tgt_emb = nn.Embedding(TOTAL_EVENT_NUM+1, d_model) # dec_inputs的最大值到了pad_idx(比输出多了pad, sos)
         self.pos_emb = PositionalEncoding(d_model)
         self.layers = nn.ModuleList([DecoderLayer() for _ in range(n_layers)])
 
     def forward(self, dec_inputs, enc_inputs_mask, enc_outputs):                         # dec_inputs: [batch_size, tgt_len]
                                                                                     # enc_intpus: [batch_size, src_len]
                                                                                     # enc_outputs: [batsh_size, src_len, d_model]
+        batch_size, seq_len = [int(s) for s in dec_inputs.shape]
         dec_outputs = self.tgt_emb(dec_inputs)                                      # [batch_size, tgt_len, d_model]
         dec_outputs = self.pos_emb(dec_outputs)                              # [batch_size, tgt_len, d_model]
         dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs, PAD_IDX)   # [batch_size, tgt_len, tgt_len]
-        dec_self_attn_subsequence_mask = self.get_attn_subsequence_mask(int(dec_inputs.shape[0]))  # [batch_size, tgt_len, tgt_len]
+        dec_self_attn_subsequence_mask = self.get_attn_subsequence_mask(batch_size, seq_len)  # [batch_size, tgt_len, tgt_len]
         dec_self_attn_subsequence_mask = dec_self_attn_subsequence_mask.to(dec_inputs.device)
+        
         dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask +
                                        dec_self_attn_subsequence_mask), 0)   # [batch_size, tgt_len, tgt_len]
         dec_enc_attn_mask = get_attn_pad_mask(dec_inputs, enc_inputs_mask)               # [batc_size, tgt_len, src_len]
@@ -211,8 +213,8 @@ class Decoder(nn.Module):
             dec_enc_attns.append(dec_enc_attn)
         return dec_outputs, dec_self_attns, dec_enc_attns
 
-    def get_attn_subsequence_mask(self, batch_size):                                 # seq: [batch_size, tgt_len]
-        attn_shape = [batch_size, OUTPUT_LENGTH, OUTPUT_LENGTH]
+    def get_attn_subsequence_mask(self, batch_size, seq_len):                                 # seq: [batch_size, tgt_len]
+        attn_shape = [batch_size, seq_len, seq_len]
         subsequence_mask = np.triu(np.ones(attn_shape), k=1)           # 生成上三角矩阵,[batch_size, tgt_len, tgt_len]
         subsequence_mask = torch.from_numpy(subsequence_mask).byte()    # [batch_size, tgt_len, tgt_len]
         return subsequence_mask
@@ -227,15 +229,15 @@ class Transformer(nn.Module):
         self.Decoder = Decoder()
         self.projection = nn.Linear(d_model, TOTAL_EVENT_NUM, bias=False)
 
-    def forward(self, enc_inputs, enc_inputs_mask, dec_inputs):                         # enc_inputs: [batch_size, src_len]
+    def forward(self, enc_inputs, inputs_mask, dec_inputs):                         # enc_inputs: [batch_size, src_len]
                                                                                         # dec_inputs: [batch_size, tgt_len]
                                                                                         # enc_outputs: [batch_size, src_len, d_model],
         enc_inputs = self.Spec(enc_inputs)
 
-        enc_outputs, enc_self_attns = self.Encoder(enc_inputs, enc_inputs_mask)       
+        enc_outputs, enc_self_attns = self.Encoder(enc_inputs, inputs_mask)       
                                                                         # enc_self_attns: [n_layers, batch_size, n_heads, src_len, src_len]
         dec_outputs, dec_self_attns, dec_enc_attns = self.Decoder(
-            dec_inputs, enc_inputs_mask, enc_outputs)                        # dec_outpus    : [batch_size, tgt_len, d_model],
+            dec_inputs, inputs_mask, enc_outputs)                        # dec_outpus    : [batch_size, tgt_len, d_model],
                                                                         # dec_self_attns: [n_layers, batch_size, n_heads, tgt_len, tgt_len],
                                                                         # dec_enc_attn  : [n_layers, batch_size, tgt_len, src_len]
         dec_logits = self.projection(dec_outputs)                       # dec_logits: [batch_size, tgt_len, TOTAL_EVENT_NUM]

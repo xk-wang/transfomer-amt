@@ -77,6 +77,8 @@ class InferModel:
         enc_inputs = self.model.Spec(chunk)
 
         enc_outputs, _ = self.model.Encoder(enc_inputs, input_mask)
+
+        # must use PAD_IDX!
         dec_inputs = PAD_IDX*torch.ones((1, OUTPUT_LENGTH), dtype=torch.int32).to(self.device)
         next_symbol = SOS_IDX
         for i in range(OUTPUT_LENGTH):
