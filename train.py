@@ -20,7 +20,7 @@ if __name__ == "__main__":
     configs = EasyDict({'train_dir': '/home/data/wxk/master-graduate/maestro-v1.0.0-spits/train', 
                         'device': 'cuda:2',
                         'gpus': 1,
-                        'batch_size': 8,
+                        'batch_size': 4,
                         'logdir': 'transformer-' + datetime.now().strftime('%y%m%d-%H'),
                         'writer_interval': 100,
                         'log_interval': 50,
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     writer = SummaryWriter(configs.logdir)
     loader = DataLoader(MaestroDataset(configs), batch_size=configs.gpus*configs.batch_size, 
-                        shuffle=False, collate_fn=pad_collate)#, num_workers=4)
+                        shuffle=True, collate_fn=pad_collate)#, num_workers=4)
     model = Transformer().to(configs.device)
     if configs.gpus>1:
         model = nn.DataParallel(model)
