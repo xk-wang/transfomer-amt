@@ -77,8 +77,8 @@ class InferModel:
             chunk = np.pad(chunk, (0, audio_length - chunk.shape[0]), mode='constant')
             input_mask = np.pad(input_mask, (0, INPUT_LENGTH - mask_length), mode='constant')
 
-        chunk = torch.from_numpy(chunk.reshape([1, -1])).to(self.device)
-        input_mask = torch.from_numpy(input_mask.reshape([1, -1])).to(self.device)
+        chunk = torch.tensor(chunk.reshape([1, -1])).to(self.device)
+        input_mask = torch.tensor(input_mask.reshape([1, -1])).to(self.device)
         enc_inputs = self.model.Spec(chunk)
         enc_outputs, _ = self.model.Encoder(enc_inputs, input_mask)
 
@@ -100,10 +100,12 @@ class InferModel:
         for event_type, ev in events:
             if event_type==TIME_EVENT:
                 t = float(ev)+time_shift
-                if t>maxtime:
-                    raise ValueError(wav_path, 'time out of range')
+                if t-maxtime>2*TIME_INTERVAL:
+                    print('time out of range')
+                    break
                 if t<last:
-                    raise ValueError(wav_path, 'time event out of order')
+                    print(wav_path, 'time event out of order')
+                    return None
                 last = t
                 total_events.append([maxtime, event_type, round(t, 3)])
             elif event_type==NOTE_EVENT:
@@ -122,18 +124,22 @@ class InferModel:
   def get_note(self, events):
       onsets = dict()
       notes = [] # onset, offset, pitch
-      state = 'initial' # on, off, ets(ignore just for better training)
+      state = INITIAL_EVENT # on, off, ets(ignore just for better training)
       time = 0
       
       for maxtime, event_type, ev in events:
+          print(event_type, ev)
           if event_type==TIME_EVENT:
               time = ev
           elif event_type in [ONSET_EVENT, OFFSET_EVENT]:
               state = event_type
-          elif event_type in [ETS_EVENT, EOS_EVENT]:
+          elif event_type in [ETS_EVENT, EOS_EVENT, SOS_EVENT]:
               continue
           elif event_type==NOTE_EVENT:
-              if state == ONSET_EVENT:
+              if state in [ONSET_EVENT, INITIAL_EVENT]:
+                  if state == INITIAL_EVENT:
+                      print('using the initial event as onset event')
+                      state = ONSET_EVENT
                   if ev in onsets.keys():
                       if abs(onsets[ev][1]-maxtime)<0.01 and time-onsets[ev][0]>TIME_INTERVAL: # in the same segment
                         notes.append([onsets[ev][0], time, ev])
@@ -151,7 +157,8 @@ class InferModel:
               raise ValueError('wrong event type!', event_type)
       if onsets:
           for pitch, (time, maxtime) in onsets.items():
-            notes.append([time, maxtime, pitch])
+              if maxtime-time>TIME_INTERVAL:
+                notes.append([time, maxtime, pitch])
       notes.sort(key=lambda x: x[0])
       return notes    
 
@@ -173,4 +180,5 @@ if __name__ == '__main__':
         notes = infer_model.predict(wav_path)
         basename = os.path.basename(wav_path).replace('.wav', '.txt')
         res_path = os.path.join(args.res_root, basename)
-        write_res(res_path, notes)
+        if notes:
+            write_res(res_path, notes)

@@ -11,6 +11,7 @@ OUTPUT_LENGTH = 512 # varaible length
 NUM_MEL_BINS = 512
 INT16_MAX = 32767
 
+INITIAL_EVENT = 'initial'
 EOS_EVENT = 'eos'
 ETS_EVENT = 'ets'
 ONSET_EVENT = 'on'

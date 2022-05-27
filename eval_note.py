@@ -14,7 +14,6 @@ def parse_args():
     return parser.parse_args()
 
 def get_notes(filepath):
-    print(filepath)
     notes = []
     with open(filepath) as f:
         for idx, line in enumerate(f):
@@ -23,7 +22,7 @@ def get_notes(filepath):
             offset = float(offset)
             pitch = float(pitch)
             if onset>=offset:
-              print(idx+1)
+                raise ValueError(filepath, idx)
             notes.append([onset, offset, pitch])
     notes.sort(key=lambda x:x[0])
     return np.array(notes)

@@ -10,8 +10,8 @@ class Spectrogram(nn.Module):
     def __init__(self):
         super(Spectrogram, self).__init__()
         self.linear_to_mel_matrix = F.melscale_fbanks(n_freqs=FFT_SIZE//2+1, f_min=MEL_LO_HZ,
-                                    f_max=MEL_HI_HZ, n_mels=NUM_MEL_BINS, sample_rate=SAMPLING_RATE, 
-                                    mel_scale='htk', norm=None) # only support htk 
+                                                      f_max=MEL_HI_HZ, n_mels=NUM_MEL_BINS, sample_rate=SAMPLING_RATE, 
+                                                      mel_scale='htk', norm=None) # only support htk 
         self.eps = torch.tensor(1e-5)
     
     def forward(self, audios):
@@ -141,6 +141,7 @@ class EncoderLayer(nn.Module):
         enc_outputs = self.pos_ffn(enc_outputs)                     # enc_outputs: [batch_size, src_len, d_model]
         return enc_outputs, attn
 
+
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
@@ -158,6 +159,7 @@ class Encoder(nn.Module):
                                                                                  # enc_self_attn : [batch_size, n_heads, src_len, src_len]
             enc_self_attns.append(enc_self_attn)
         return enc_outputs, enc_self_attns
+
 
 class DecoderLayer(nn.Module):
     def __init__(self):
@@ -218,7 +220,6 @@ class Decoder(nn.Module):
         subsequence_mask = np.triu(np.ones(attn_shape), k=1)           # 生成上三角矩阵,[batch_size, tgt_len, tgt_len]
         subsequence_mask = torch.from_numpy(subsequence_mask).byte()    # [batch_size, tgt_len, tgt_len]
         return subsequence_mask
-
 
 
 class Transformer(nn.Module):
