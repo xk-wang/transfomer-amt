@@ -1,9 +1,6 @@
-from distutils.command.config import config
 import time
 import torch
 import torch.nn as nn
-# import torch.optim as optim
-# import fairseq.optim as optim
 import torch_optimizer as optim
 from datasets import *
 from torch.utils.data import DataLoader
